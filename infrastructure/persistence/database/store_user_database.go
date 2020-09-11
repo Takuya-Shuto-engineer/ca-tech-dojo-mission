@@ -9,14 +9,20 @@ import (
 )
 
 type UserRepository struct {
-	repository.UserRepository
+	DB *sql.DB
 }
 
-func NewUserRepository() repository.UserRepository {
-	return &UserRepository{}
+func NewUserRepository() (repository.UserRepository, error) {
+	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
+	return &UserRepository{DB: db}, err
 }
 
-func (repository *UserRepository) InsertDB(user model.User) error {
+func (repository *UserRepository) DBClose() error {
+	err := repository.DB.Close()
+	return err
+}
+
+func (repository *UserRepository) Insert(user model.User) error {
 	// databaseにuserを新規登録する
 	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
 	if err != nil {
@@ -34,7 +40,7 @@ func (repository *UserRepository) InsertDB(user model.User) error {
 	return err
 }
 
-func (repository *UserRepository) GetByUserIdDB(userId string) (*model.User, error) {
+func (repository *UserRepository) GetByUserId(userId string) (*model.User, error) {
 	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
 	if err != nil {
 		panic(err.Error())
@@ -47,7 +53,7 @@ func (repository *UserRepository) GetByUserIdDB(userId string) (*model.User, err
 	return &user, err
 }
 
-func (repository *UserRepository) UpdateDB(updatedUser model.User) error {
+func (repository *UserRepository) Update(updatedUser model.User) error {
 	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
 	if err != nil {
 		panic(err.Error())

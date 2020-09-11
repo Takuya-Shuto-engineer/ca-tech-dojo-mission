@@ -15,8 +15,25 @@ import (
 // var store = map[string]*model.User{}
 // var lock = sync.RWMutex{}
 
+// リクエスト・レスポンス用の入れ物構造体
+type UserCreateRequest struct {
+	Name string `json:"name"`
+}
+
+type UserCreateResponse struct {
+	Token string `json:"token"`
+}
+
+type UserGetResponse struct {
+	Name string `json:"name"`
+}
+
+type UserUpdateReqest struct {
+	Name string `json:"name"`
+}
+
 // DBアクセスのためのレポジトリ
-var userRepository = database.NewUserRepository()
+var userRepository, err = database.NewUserRepository()
 
 func main() {
 	api := rest.NewApi()
@@ -31,11 +48,12 @@ func main() {
 	}
 	api.SetApp(router)
 	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+	defer userRepository.DBClose()
 }
 
 func CreateUser(writer rest.ResponseWriter, request *rest.Request) {
 	// リクエスト受け取り用の構造体を作成
-	requestContainer := model.UserCreateRequest{}
+	requestContainer := UserCreateRequest{}
 
 	// requestContainerにrequestで渡されたデータを代入, エラーの有無を確認
 	err := request.DecodeJsonPayload(&requestContainer)
@@ -56,7 +74,7 @@ func CreateUser(writer rest.ResponseWriter, request *rest.Request) {
 	}
 
 	// tokenの生成
-	responseContainer := model.UserCreateResponse{}
+	responseContainer := UserCreateResponse{}
 	responseContainer.Token, err = auth.CreateToken(user)
 	if err != nil {
 		rest.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -69,7 +87,7 @@ func CreateUser(writer rest.ResponseWriter, request *rest.Request) {
 	// lock.Unlock()
 
 	// DBに保存
-	err = userRepository.InsertDB(user)
+	err = userRepository.Insert(user)
 	if err != nil {
 		rest.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -109,7 +127,7 @@ func GetUser(writer rest.ResponseWriter, request *rest.Request) {
 	//}
 
 	// DBからuserの特定
-	user, err := userRepository.GetByUserIdDB(userId)
+	user, err := userRepository.GetByUserId(userId)
 	if err != nil {
 		rest.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -120,7 +138,7 @@ func GetUser(writer rest.ResponseWriter, request *rest.Request) {
 	}
 
 	// レスポンスJson用の構造体にnameを入れておく
-	responseContainer := model.UserGetResponse{}
+	responseContainer := UserGetResponse{}
 	responseContainer.Name = user.Name
 
 	// レスポンス
@@ -154,7 +172,7 @@ func UpdateUser(writer rest.ResponseWriter, request *rest.Request) {
 	//}
 
 	// DBからuserの特定
-	user, err := userRepository.GetByUserIdDB(userId)
+	user, err := userRepository.GetByUserId(userId)
 	if err != nil {
 		rest.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -165,7 +183,7 @@ func UpdateUser(writer rest.ResponseWriter, request *rest.Request) {
 	}
 
 	// リクエストボディ受け取り用の構造体を作成
-	requestContainer := model.UserUpdateReqest{}
+	requestContainer := UserUpdateReqest{}
 
 	// nameにrequestで渡されたデータを代入, エラーの有無を確認
 	err = request.DecodeJsonPayload(&requestContainer)
@@ -187,7 +205,7 @@ func UpdateUser(writer rest.ResponseWriter, request *rest.Request) {
 	// lock.Unlock()
 
 	// DB上で更新
-	err = userRepository.UpdateDB(updatedUser)
+	err = userRepository.Update(updatedUser)
 	if err != nil {
 		rest.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
