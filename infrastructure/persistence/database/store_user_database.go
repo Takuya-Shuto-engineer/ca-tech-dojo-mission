@@ -24,14 +24,7 @@ func (repository *UserRepository) DBClose() error {
 
 func (repository *UserRepository) Insert(user model.User) error {
 	// databaseにuserを新規登録する
-	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
-	if err != nil {
-		println("sql open error")
-		panic(err.Error())
-	}
-	defer db.Close() // 関数がリターンする直前に呼び出される
-
-	insert, err := db.Prepare("INSERT INTO users (id, name) VALUES (?, ?)")
+	insert, err := repository.DB.Prepare("INSERT INTO users (id, name) VALUES (?, ?)")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -41,26 +34,14 @@ func (repository *UserRepository) Insert(user model.User) error {
 }
 
 func (repository *UserRepository) GetByUserId(userId string) (*model.User, error) {
-	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
-	if err != nil {
-		panic(err.Error())
-	}
-	defer db.Close() // 関数がリターンする直前に呼び出される
-
 	user := model.User{}
 
-	err = db.QueryRow("SELECT * FROM users WHERE id = ?", userId).Scan(&user.Id, &user.Name)
+	err := repository.DB.QueryRow("SELECT * FROM users WHERE id = ?", userId).Scan(&user.Id, &user.Name)
 	return &user, err
 }
 
 func (repository *UserRepository) Update(updatedUser model.User) error {
-	db, err := sql.Open("mysql", "ca:mission@/ca_mission")
-	if err != nil {
-		panic(err.Error())
-	}
-	defer db.Close() // 関数がリターンする直前に呼び出される
-
-	update, err := db.Prepare("UPDATE users set name = ? where id = ? ")
+	update, err := repository.DB.Prepare("UPDATE users set name = ? where id = ? ")
 	if err != nil {
 		panic(err.Error())
 	}
